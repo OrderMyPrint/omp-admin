@@ -1,11 +1,12 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
+import { Link } from "react-router";
 import { api, ApiError } from "../lib/api";
 import { useSession } from "../lib/session";
 
 type Json = any;
 
-const errText = (e: unknown) => {
+export const errText = (e: unknown) => {
   if (!(e instanceof ApiError)) return String(e);
   const problems =
     (e.extra.problems as string[] | undefined) ??
@@ -118,9 +119,14 @@ function Pages() {
                 </div>
               </td>
               <td>
-                <button type="button" className="link" onClick={() => setEditing(p.id)}>
-                  Edit
-                </button>
+                <div className="row">
+                  <Link className="link" to={`/website/editor/${p.id}`}>
+                    Visual editor
+                  </Link>
+                  <button type="button" className="link" onClick={() => setEditing(p.id)}>
+                    Edit form
+                  </button>
+                </div>
               </td>
             </tr>
           ))}
@@ -134,7 +140,7 @@ const TEXT_FIELDS = ["overline", "heading", "title", "lead", "body", "note"] as 
 const LONG = new Set(["body", "lead"]);
 
 /** Edits the text of every section (AD-WEB-02). Links and images keep their current targets. */
-function BlockEditor({ block, onChange }: { block: Json; onChange: (b: Json) => void }) {
+export function BlockEditor({ block, onChange }: { block: Json; onChange: (b: Json) => void }) {
   const set = (patch: Json) => onChange({ ...block, ...patch });
   const lines = (value: string[] | undefined) => (value ?? []).join("\n");
   const fromLines = (text: string) =>
@@ -353,6 +359,9 @@ function PageEditor({ id, onClose }: { id: string; onClose: () => void }) {
           </p>
         </div>
         <div className="row">
+          <Link className="btn btn-accent" to={`/website/editor/${id}`}>
+            Visual editor
+          </Link>
           {can("content.write") ? (
             <button type="button" className="btn btn-secondary" onClick={saveDraft}>
               Save draft

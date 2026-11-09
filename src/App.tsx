@@ -9,6 +9,7 @@ import { Catalogue } from "./pages/Catalogue";
 import { Pricing } from "./pages/Pricing";
 import { AccessDenied, ComingSoon, NotFound, Overview } from "./pages/Simple";
 import { StaffAndRoles } from "./pages/Staff";
+import { VisualEditor } from "./pages/VisualEditor";
 import { Website } from "./pages/Website";
 
 const screens: Record<string, ReactNode> = {
@@ -47,6 +48,16 @@ export function App() {
     <Routes>
       <Route path="/sign-in" element={<SignIn />} />
       <Route path="/accept-invite" element={<AcceptInvite />} />
+      <Route
+        path="/website/editor/:id"
+        element={
+          <RequireSession>
+            <RequirePermission permission="content.read" label="Website content">
+              <VisualEditor />
+            </RequirePermission>
+          </RequireSession>
+        }
+      />
       <Route
         element={
           <RequireSession>

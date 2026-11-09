@@ -5,6 +5,7 @@ import { BrowserRouter } from "react-router";
 import { App } from "./App";
 import { SessionProvider } from "./lib/session";
 import "./styles/admin.css";
+import "./styles/editor.css";
 
 const client = new QueryClient({ defaultOptions: { queries: { refetchOnWindowFocus: false } } });
 
