@@ -1,0 +1,101 @@
+/*
+ * Text styles from Figma (17 styles). Use these utility classes instead of
+ * setting font sizes in components. Headings scale down on small screens.
+ */
+
+.t-display-xl {
+  font: 700 56px / 64px var(--omp-font-heading);
+  letter-spacing: -1px;
+}
+
+.t-h1 {
+  font: 700 40px / 48px var(--omp-font-heading);
+  letter-spacing: -0.5px;
+}
+
+.t-h2 {
+  font: 600 32px / 40px var(--omp-font-heading);
+  letter-spacing: -0.25px;
+}
+
+.t-h3 {
+  font: 600 24px / 32px var(--omp-font-heading);
+}
+
+.t-h4 {
+  font: 600 20px / 28px var(--omp-font-heading);
+}
+
+.t-h5 {
+  font: 600 16px / 24px var(--omp-font-heading);
+}
+
+.t-body-l {
+  font: 400 18px / 28px var(--omp-font-body);
+}
+
+.t-body-m {
+  font: 400 16px / 24px var(--omp-font-body);
+}
+
+.t-body-s {
+  font: 400 14px / 20px var(--omp-font-body);
+}
+
+.t-body-xs {
+  font: 400 12px / 16px var(--omp-font-body);
+}
+
+.t-label-l {
+  font: 600 16px / 24px var(--omp-font-body);
+}
+
+.t-label-m {
+  font: 600 14px / 20px var(--omp-font-body);
+}
+
+.t-label-s {
+  font: 600 12px / 16px var(--omp-font-body);
+}
+
+.t-overline {
+  font: 600 12px / 16px var(--omp-font-heading);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.t-price-l {
+  font: 700 28px / 36px var(--omp-font-heading);
+}
+
+.t-price-m {
+  font: 700 20px / 28px var(--omp-font-heading);
+}
+
+.t-mono-s {
+  font: 500 13px / 20px var(--omp-font-body);
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 767px) {
+  .t-display-xl {
+    font-size: 36px;
+    line-height: 44px;
+    letter-spacing: -0.5px;
+  }
+
+  .t-h1 {
+    font-size: 32px;
+    line-height: 40px;
+  }
+
+  .t-h2 {
+    font-size: 24px;
+    line-height: 32px;
+  }
+
+  .t-body-l {
+    font-size: 16px;
+    line-height: 24px;
+  }
+}
