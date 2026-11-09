@@ -724,3 +724,58 @@ fieldset.field {
   gap: 2px;
   font-size: 14px;
 }
+
+/* ---------- orders (AD-ORD) ---------- */
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 0 14px;
+  border: 1px solid var(--omp-color-border-strong);
+  border-radius: 999px;
+  background: var(--omp-color-bg-surface);
+  color: var(--omp-color-text-primary);
+  font: 600 13px / 18px var(--omp-font-body);
+  cursor: pointer;
+}
+
+.chip[aria-pressed="true"] {
+  border-color: var(--omp-color-action-primary);
+  background: var(--omp-color-action-primary);
+  color: var(--omp-color-text-inverse);
+}
+
+.chip-count {
+  min-width: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--omp-color-bg-subtle);
+  color: var(--omp-color-text-primary);
+  font-size: 12px;
+  text-align: center;
+}
+
+.timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.timeline li {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-left: 12px;
+  border-left: 2px solid var(--omp-color-border-default);
+  font-size: 14px;
+}
