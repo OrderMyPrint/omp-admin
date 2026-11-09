@@ -33,8 +33,8 @@ export const NAV: NavGroup[] = [
   {
     title: "Catalogue",
     items: [
-      { label: "Products & categories", path: "/catalogue", icon: Layers, permission: "catalogue.read", ready: false },
-      { label: "Pricing rules", path: "/pricing", icon: Tag, permission: "pricing.read", ready: false },
+      { label: "Products & categories", path: "/catalogue", icon: Layers, permission: "catalogue.read", ready: true },
+      { label: "Pricing rules", path: "/pricing", icon: Tag, permission: "pricing.read", ready: true },
     ],
   },
   {

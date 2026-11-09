@@ -5,12 +5,16 @@ import { ALL_ITEMS } from "./lib/nav";
 import { useSession } from "./lib/session";
 import { AuditLog } from "./pages/AuditLog";
 import { AcceptInvite, SignIn } from "./pages/Auth";
+import { Catalogue } from "./pages/Catalogue";
+import { Pricing } from "./pages/Pricing";
 import { AccessDenied, ComingSoon, NotFound, Overview } from "./pages/Simple";
 import { StaffAndRoles } from "./pages/Staff";
 import { Website } from "./pages/Website";
 
 const screens: Record<string, ReactNode> = {
   "/": <Overview />,
+  "/catalogue": <Catalogue />,
+  "/pricing": <Pricing />,
   "/staff": <StaffAndRoles />,
   "/website": <Website />,
   "/audit": <AuditLog />,
