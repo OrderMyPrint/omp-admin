@@ -5,6 +5,7 @@ import { Link, useSearchParams } from "react-router";
 import { api, ApiError } from "../lib/api";
 import {
   dateText,
+  dateTimeText,
   errText,
   isReferenceSource,
   rupees,
@@ -24,6 +25,7 @@ type Notice = { tone: "success" | "error"; text: string } | null;
 const STATUS: Record<VersionStatus, [string, string]> = {
   DRAFT: ["badge badge-warning", "Draft"],
   PUBLISHED: ["badge badge-success", "Published"],
+  SCHEDULED: ["badge badge-info", "Scheduled"],
   ARCHIVED: ["badge", "Archived"],
 };
 
@@ -90,18 +92,25 @@ function ProductPricing({
   const list = versions.data?.versions ?? [];
   const published = list.find((v) => v.status === "PUBLISHED");
   const draft = list.find((v) => v.status === "DRAFT");
-  const shownId = versionId ?? draft?.id ?? published?.id ?? null;
+  const scheduled = list.find((v) => v.status === "SCHEDULED");
+  const shownId = versionId ?? draft?.id ?? scheduled?.id ?? published?.id ?? null;
 
   const createDraft = useMutation({
     mutationFn: () => api<Version>(`/admin/catalogue/products/${productId}/pricing/drafts`, { method: "POST" }),
     onSuccess: (v) => {
-      setNotice({ tone: "success", text: `Draft v${v.versionNo} started from the published prices.` });
+      setNotice({
+        tone: "success",
+        text: published
+          ? `Draft v${v.versionNo} started from the published prices.`
+          : `Draft v${v.versionNo} started. Enter every price before publishing.`,
+      });
       void client.invalidateQueries({ queryKey: ["pricing", productId] });
       void client.invalidateQueries({ queryKey: ["products"] });
       onVersion(v.id);
     },
     onError: (e) => {
-      if (e instanceof ApiError && e.code === "DRAFT_EXISTS") onVersion(String(e.extra.versionId));
+      if (e instanceof ApiError && (e.code === "DRAFT_EXISTS" || e.code === "VERSION_SCHEDULED"))
+        onVersion(String(e.extra.versionId));
       setNotice({ tone: "error", text: errText(e) });
     },
   });
@@ -121,16 +130,20 @@ function ProductPricing({
             <button type="button" className="btn btn-primary" onClick={() => onVersion(draft.id)}>
               Edit draft v{draft.versionNo}
             </button>
-          ) : published ? (
+          ) : scheduled ? (
+            <button type="button" className="btn btn-secondary" onClick={() => onVersion(scheduled.id)}>
+              Scheduled v{scheduled.versionNo}
+            </button>
+          ) : (
             <button
               type="button"
               className="btn btn-primary"
               disabled={createDraft.isPending}
               onClick={() => createDraft.mutate()}
             >
-              New draft from v{published.versionNo}
+              {published ? `New draft from v${published.versionNo}` : "Start pricing"}
             </button>
-          ) : null
+          )
         ) : null}
       </div>
       {notice ? <p className={`alert alert-${notice.tone}`}>{notice.text}</p> : null}
@@ -158,7 +171,13 @@ function ProductPricing({
               <td>
                 <span className={STATUS[v.status][0]}>{STATUS[v.status][1]}</span>
               </td>
-              <td>{v.status === "DRAFT" ? "—" : dateText(v.effectiveFrom)}</td>
+              <td>
+                {v.status === "DRAFT"
+                  ? "—"
+                  : v.status === "SCHEDULED"
+                    ? dateTimeText(v.effectiveFrom)
+                    : dateText(v.effectiveFrom)}
+              </td>
               <td>{v.publishedAt ? `${v.publishedBy ?? "Seed data"} · ${dateText(v.publishedAt)}` : "—"}</td>
               <td>{v.note ?? (isReferenceSource(v.source) ? "Reference rates (D-08)" : "—")}</td>
               <td>
@@ -228,6 +247,11 @@ function VersionView({
     enabled: !!v && v.id !== publishedId,
   });
 
+  const unschedule = useMutation({
+    mutationFn: () => api<Version>(`/admin/catalogue/pricing/${versionId}/unschedule`, { method: "POST" }),
+    onSuccess: () => onDone(`Schedule cancelled — v${v?.versionNo} is a draft again.`),
+    onError: (e) => setNotice({ tone: "error", text: errText(e) }),
+  });
   const save = useMutation({
     mutationFn: () =>
       api<Version>(`/admin/catalogue/pricing/${versionId}`, {
@@ -299,6 +323,30 @@ function VersionView({
       </div>
       {notice ? <p className={`alert alert-${notice.tone}`}>{notice.text}</p> : null}
       {dirty ? <p className="alert alert-info">Unsaved changes. Save the draft to test or publish them.</p> : null}
+      {v.status === "SCHEDULED" ? (
+        <div className="alert alert-info row" style={{ justifyContent: "space-between" }}>
+          <span>
+            Scheduled: goes live on <strong>{dateTimeText(v.effectiveFrom)}</strong>. Until then the current version
+            stays live.
+          </span>
+          {can("pricing.publish") ? (
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              disabled={unschedule.isPending}
+              onClick={() => unschedule.mutate()}
+            >
+              Cancel schedule
+            </button>
+          ) : null}
+        </div>
+      ) : null}
+      {v.status === "DRAFT" && !publishedId ? (
+        <p className="alert alert-info">
+          New pricing: enter every tier price and option price before publishing. A tier priced at 0.00 can't be
+          published.
+        </p>
+      ) : null}
 
       <div className="layout-split">
         <TiersCard doc={doc} setDoc={setDoc} editable={editable} unit={unit} product={product} />
@@ -354,7 +402,13 @@ function VersionView({
 
       {diff.data?.against ? <DiffCard diff={diff.data} versionNo={v.versionNo} /> : null}
 
-      <TestBench version={v} publishedId={publishedId} disabled={dirty} onRun={() => setTested(true)} />
+      <TestBench
+        key={`${v.id}-${v.document.tiers[0]?.minQty}`}
+        version={v}
+        publishedId={publishedId}
+        disabled={dirty}
+        onRun={() => setTested(true)}
+      />
 
       {publishing ? (
         <PublishDialog
@@ -362,9 +416,13 @@ function VersionView({
           diff={diff.data ?? null}
           tested={tested}
           onClose={() => setPublishing(false)}
-          onPublished={() => {
+          onPublished={(at) => {
             setPublishing(false);
-            onDone(`Pricing v${v.versionNo} for ${product.name} is now live.`);
+            onDone(
+              at
+                ? `Pricing v${v.versionNo} for ${product.name} is scheduled for ${dateTimeText(at)}.`
+                : `Pricing v${v.versionNo} for ${product.name} is now live.`,
+            );
           }}
         />
       ) : null}
@@ -877,13 +935,25 @@ function PublishDialog({
   diff: Diff | null;
   tested: boolean;
   onClose: () => void;
-  onPublished: () => void;
+  onPublished: (scheduledFor: string | null) => void;
 }) {
   const [confirmed, setConfirmed] = useState(tested);
+  const [when, setWhen] = useState<"now" | "later">("now");
+  const [at, setAt] = useState("");
+  const atIso = at ? new Date(at).toISOString() : null;
   const publish = useMutation({
-    mutationFn: () => api(`/admin/catalogue/pricing/${version.id}/publish`, { method: "POST" }),
-    onSuccess: onPublished,
+    mutationFn: () =>
+      api(`/admin/catalogue/pricing/${version.id}/publish`, {
+        method: "POST",
+        body: when === "later" && atIso ? { effectiveFrom: atIso } : {},
+      }),
+    onSuccess: () => onPublished(when === "later" ? atIso : null),
   });
+  const minLocal = (() => {
+    const d = new Date(Date.now() + 5 * 60_000);
+    d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+    return d.toISOString().slice(0, 16);
+  })();
   const changed = diff?.rows.filter((r) => r.change) ?? [];
   const tiers = changed.filter((r) => r.component.startsWith("tier.")).length;
   const options = changed.filter((r) => r.component.startsWith("option.")).length;
@@ -917,15 +987,17 @@ function PublishDialog({
         <dl className="summary">
           <dt>Changes</dt>
           <dd>
-            {changed.length
-              ? [
-                  tiers ? `${tiers} tier ${tiers === 1 ? "price" : "prices"}` : null,
-                  options ? `${options} option ${options === 1 ? "price" : "prices"}` : null,
-                  other ? `${other} other` : null,
-                ]
-                  .filter(Boolean)
-                  .join(" · ")
-              : "None — same prices as live"}
+            {!diff?.against
+              ? "First prices for this product"
+              : changed.length
+                ? [
+                    tiers ? `${tiers} tier ${tiers === 1 ? "price" : "prices"}` : null,
+                    options ? `${options} option ${options === 1 ? "price" : "prices"}` : null,
+                    other ? `${other} other` : null,
+                  ]
+                    .filter(Boolean)
+                    .join(" · ")
+                : "None — same prices as live"}
           </dd>
           {largest ? (
             <>
@@ -935,8 +1007,8 @@ function PublishDialog({
               </dd>
             </>
           ) : null}
-          <dt>When</dt>
-          <dd>Now (scheduling a date comes in a later release)</dd>
+          <dt>Applies to</dt>
+          <dd>New carts and checkouts from the moment it goes live</dd>
         </dl>
         {isReferenceSource(version.document.source) ? (
           <p className="alert alert-info">
@@ -947,6 +1019,33 @@ function PublishDialog({
           <input type="checkbox" checked={confirmed} onChange={(e) => setConfirmed(e.target.checked)} />
           <span>I've run the test bench and reviewed the changes</span>
         </label>
+        <fieldset className="field">
+          <legend className="label">When</legend>
+          <div className="row">
+            <label className="check">
+              <input type="radio" name="publish-when" checked={when === "now"} onChange={() => setWhen("now")} />
+              <span>Publish now</span>
+            </label>
+            <label className="check">
+              <input type="radio" name="publish-when" checked={when === "later"} onChange={() => setWhen("later")} />
+              <span>Schedule for a date</span>
+            </label>
+          </div>
+          {when === "later" ? (
+            <>
+              <input
+                type="datetime-local"
+                aria-label="Goes live at"
+                min={minLocal}
+                value={at}
+                onChange={(e) => setAt(e.target.value)}
+              />
+              <span className="hint">
+                Your computer’s local time. It goes live on the first catalogue visit after this time.
+              </span>
+            </>
+          ) : null}
+        </fieldset>
         {publish.error ? <p className="alert alert-error">{errText(publish.error)}</p> : null}
         <div className="row" style={{ justifyContent: "flex-end" }}>
           <button type="button" className="btn btn-secondary" onClick={onClose}>
@@ -955,10 +1054,10 @@ function PublishDialog({
           <button
             type="button"
             className="btn btn-primary"
-            disabled={!confirmed || publish.isPending}
+            disabled={!confirmed || publish.isPending || (when === "later" && !at)}
             onClick={() => publish.mutate()}
           >
-            Publish v{version.versionNo}
+            {when === "later" ? "Schedule" : "Publish"} v{version.versionNo}
           </button>
         </div>
         <p className="t-body-s muted">

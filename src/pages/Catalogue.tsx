@@ -13,14 +13,15 @@ import {
   type UploadTiming,
 } from "../lib/catalogue";
 import { useSession } from "../lib/session";
-
-type Notice = { tone: "success" | "error"; text: string } | null;
-const NoticeBar = ({ notice }: { notice: Notice }) =>
-  notice ? (
-    <p className={`alert alert-${notice.tone}`} role={notice.tone === "error" ? "alert" : "status"}>
-      {notice.text}
-    </p>
-  ) : null;
+import {
+  AddSlotForm,
+  NewProductDialog,
+  NoticeBar,
+  OptionsRulesTab,
+  SlugField,
+  useProductWrite,
+  type Notice,
+} from "./CatalogueStructure";
 
 /** AD-CAT-01 / 02 / 03 · Products & categories. The API enforces every permission; controls only appear when allowed. */
 export function Catalogue() {
@@ -76,12 +77,22 @@ function ProductsTab({ onEdit }: { onEdit: (id: string) => void }) {
   const rows = (products.data ?? []).filter(
     (p) => (!category || p.category.slug === category) && p.name.toLowerCase().includes(q.trim().toLowerCase()),
   );
+  const { can } = useSession();
+  const [creating, setCreating] = useState(false);
 
   return (
     <>
-      <p className="t-body-s muted">
-        {products.data ? `${products.data.length} product families in ${categories.length} categories` : "Loading…"}
-      </p>
+      <div className="row" style={{ justifyContent: "space-between" }}>
+        <p className="t-body-s muted">
+          {products.data ? `${products.data.length} product families in ${categories.length} categories` : "Loading…"}
+        </p>
+        {can("catalogue.write") ? (
+          <button type="button" className="btn btn-primary" onClick={() => setCreating(true)}>
+            New product
+          </button>
+        ) : null}
+      </div>
+      {creating ? <NewProductDialog onClose={() => setCreating(false)} onCreated={onEdit} /> : null}
       <div className="row" style={{ alignItems: "flex-end" }}>
         <div className="field" style={{ flex: "1 1 320px" }}>
           <label htmlFor="product-search">Search</label>
@@ -129,6 +140,14 @@ function ProductsTab({ onEdit }: { onEdit: (id: string) => void }) {
                   <>
                     {" "}
                     <span className="badge badge-warning">Draft v{p.draftVersionNo}</span>
+                  </>
+                ) : null}
+                {p.scheduled ? (
+                  <>
+                    {" "}
+                    <span className="badge badge-info">
+                      v{p.scheduled.versionNo} from {new Date(p.scheduled.effectiveFrom).toLocaleDateString("en-IN")}
+                    </span>
                   </>
                 ) : null}
               </td>
@@ -337,22 +356,31 @@ function CategoriesTab() {
                 onChange={(e) => set({ name: e.target.value })}
               />
             </div>
-            <div className="field">
-              <label htmlFor="cat-slug">URL slug</label>
-              <input
+            {selected === "new" ? (
+              <div className="field">
+                <label htmlFor="cat-slug">URL slug</label>
+                <input
+                  id="cat-slug"
+                  required
+                  pattern="[a-z0-9]+(-[a-z0-9]+)*"
+                  value={form.slug}
+                  onChange={(e) => set({ slug: e.target.value })}
+                />
+                <span className="hint">Lower-case words joined by dashes, e.g. business-stationery.</span>
+              </div>
+            ) : current ? (
+              <SlugField
                 id="cat-slug"
-                required
-                pattern="[a-z0-9]+(-[a-z0-9]+)*"
-                readOnly={selected !== "new"}
-                value={form.slug}
-                onChange={(e) => set({ slug: e.target.value })}
+                label="URL slug"
+                prefix="/category/"
+                slug={current.slug}
+                path={`/admin/catalogue/categories/${current.id}/slug`}
+                onChanged={() => {
+                  setNotice({ tone: "success", text: "Address changed. The old address now redirects." });
+                  refresh();
+                }}
               />
-              <span className="hint">
-                {selected === "new"
-                  ? "Lower-case words joined by dashes, e.g. business-stationery. It can't be changed later yet."
-                  : "Slug changes come with redirects in a later release — website pages link to this category by its slug."}
-              </span>
-            </div>
+            ) : null}
             <div className="field">
               <label htmlFor="cat-summary">Menu summary</label>
               <input
@@ -460,7 +488,7 @@ function ProductEditor({ id, onBack }: { id: string; onBack: () => void }) {
         {(
           [
             ["details", "Details"],
-            ["options", "Options"],
+            ["options", "Options & rules"],
             ["artwork", "Artwork"],
           ] as const
         ).map(([key, label]) => (
@@ -480,7 +508,12 @@ function ProductEditor({ id, onBack }: { id: string; onBack: () => void }) {
         tab === "details" ? (
           <DetailsTab product={p} />
         ) : tab === "options" ? (
-          <OptionsTab product={p} />
+          <OptionsRulesTab
+            product={p}
+            renderOptionRow={(group, index, setNotice) => (
+              <OptionRow productId={p.id} option={group.options[index]} setNotice={setNotice} />
+            )}
+          />
         ) : (
           <ArtworkTab product={p} />
         )
@@ -531,10 +564,18 @@ function DetailsTab({ product }: { product: ProductDetail }) {
     turnaroundMinDays: product.turnaroundMinDays,
     turnaroundMaxDays: product.turnaroundMaxDays,
     uploadTiming: product.uploadTiming,
+    imageUrl: product.imageUrl,
     isVisible: product.isVisible,
   });
   const [form, setForm] = useState(initial);
   const [notice, setNotice] = useState<Notice>(null);
+  const client = useQueryClient();
+  const media = useQuery({
+    queryKey: ["media"],
+    queryFn: () => api<{ id: string; url: string; fileName: string; mimeType: string }[]>("/admin/content/media"),
+    enabled: can("content.read"),
+  });
+  const images = (media.data ?? []).filter((m) => m.mimeType.startsWith("image/"));
   useEffect(() => setForm(initial()), [product]); // eslint-disable-line react-hooks/exhaustive-deps
   const save = useProductSave(product.id, setNotice);
   const set = (patch: Partial<ReturnType<typeof initial>>) => setForm((f) => ({ ...f, ...patch }));
@@ -571,6 +612,18 @@ function DetailsTab({ product }: { product: ProductDetail }) {
               onChange={(e) => set({ name: e.target.value })}
             />
           </div>
+          <SlugField
+            id="p-slug"
+            label="URL slug"
+            prefix="/products/"
+            slug={product.slug}
+            path={`/admin/catalogue/products/${product.id}/slug`}
+            onChanged={(saved) => {
+              client.setQueryData(["product", product.id], saved);
+              void client.invalidateQueries({ queryKey: ["products"] });
+              setNotice({ tone: "success", text: "Address changed. The old address now redirects." });
+            }}
+          />
           <div className="field">
             <label htmlFor="p-category">Category</label>
             <select
@@ -638,6 +691,37 @@ function DetailsTab({ product }: { product: ProductDetail }) {
           <h2 id="ordering-title" className="t-h4">
             Artwork &amp; ordering
           </h2>
+          <div className="field">
+            <label htmlFor="p-image">Product image</label>
+            {images.length ? (
+              <select
+                id="p-image"
+                disabled={!write}
+                value={form.imageUrl}
+                onChange={(e) => set({ imageUrl: e.target.value })}
+              >
+                <option value="">No image</option>
+                {!images.some((m) => m.url === form.imageUrl) && form.imageUrl ? (
+                  <option value={form.imageUrl}>{form.imageUrl}</option>
+                ) : null}
+                {images.map((m) => (
+                  <option key={m.id} value={m.url}>
+                    {m.fileName}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <input
+                id="p-image"
+                disabled={!write}
+                placeholder="/images/product.png"
+                value={form.imageUrl}
+                onChange={(e) => set({ imageUrl: e.target.value })}
+              />
+            )}
+            {form.imageUrl ? <img className="thumb" src={form.imageUrl} alt="" /> : null}
+            <span className="hint">From the media library. Uploading new images arrives with file storage (D-05).</span>
+          </div>
           <div className="field">
             <label htmlFor="p-timing">Artwork timing</label>
             <select
@@ -723,50 +807,6 @@ function DetailsTab({ product }: { product: ProductDetail }) {
   );
 }
 
-function OptionsTab({ product }: { product: ProductDetail }) {
-  const [notice, setNotice] = useState<Notice>(null);
-  return (
-    <div className="stack">
-      <p className="t-body-s muted">
-        Edit labels and availability. Adding or removing options and constraint rules (AD-CAT-04) comes in the next
-        release; option prices are set in Pricing rules.
-      </p>
-      <NoticeBar notice={notice} />
-      {product.optionGroups.map((group) => (
-        <section key={group.id} className="card" aria-labelledby={`group-${group.id}`}>
-          <div className="row" style={{ justifyContent: "space-between" }}>
-            <h2 id={`group-${group.id}`} className="t-h4">
-              {group.label}
-            </h2>
-            <span className="mono">
-              {group.kind === "MULTISELECT" ? "Pick any" : "Pick one"}
-              {group.required ? " · required" : ""}
-            </span>
-          </div>
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Option</th>
-                <th>Detail</th>
-                <th>Orderable online</th>
-                <th>If not, why</th>
-                <th>
-                  <span className="visually-hidden">Save</span>
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {group.options.map((option) => (
-                <OptionRow key={option.id} productId={product.id} option={option} setNotice={setNotice} />
-              ))}
-            </tbody>
-          </table>
-        </section>
-      ))}
-    </div>
-  );
-}
-
 function OptionRow({
   productId,
   option,
@@ -795,7 +835,7 @@ function OptionRow({
     available !== option.isAvailable ||
     (!available && reason !== (option.unavailableReason ?? ""));
   return (
-    <tr>
+    <>
       <td>
         <input
           className="cell-input"
@@ -858,13 +898,14 @@ function OptionRow({
           </button>
         ) : null}
       </td>
-    </tr>
+    </>
   );
 }
 
 const FILE_TYPES = ["pdf", "png", "jpg", "jpeg", "svg", "cdr", "ai", "eps", "psd", "tif", "tiff"];
 
 function ArtworkTab({ product }: { product: ProductDetail }) {
+  const { can } = useSession();
   const [notice, setNotice] = useState<Notice>(null);
   return (
     <div className="stack">
@@ -877,6 +918,7 @@ function ArtworkTab({ product }: { product: ProductDetail }) {
         {product.artworkSlots.map((slot) => (
           <SlotCard key={slot.id} productId={product.id} slot={slot} setNotice={setNotice} />
         ))}
+        {can("catalogue.write") ? <AddSlotForm productId={product.id} setNotice={setNotice} /> : null}
       </div>
     </div>
   );
@@ -904,6 +946,7 @@ function SlotCard({
   const [form, setForm] = useState(initial);
   useEffect(() => setForm(initial()), [slot]); // eslint-disable-line react-hooks/exhaustive-deps
   const save = useProductSave(productId, setNotice);
+  const remove = useProductWrite(productId, setNotice);
   const set = (patch: Partial<ReturnType<typeof initial>>) => setForm((f) => ({ ...f, ...patch }));
   const p = `slot-${slot.id}`;
   return (
@@ -999,6 +1042,17 @@ function SlotCard({
       </fieldset>
       {write ? (
         <div className="row" style={{ justifyContent: "flex-end" }}>
+          <button
+            type="button"
+            className="btn btn-ghost"
+            disabled={remove.isPending}
+            onClick={() => {
+              if (window.confirm(`Delete the artwork slot “${slot.label}”?`))
+                remove.mutate({ path: `/admin/catalogue/artwork-slots/${slot.id}`, method: "DELETE" });
+            }}
+          >
+            Delete slot
+          </button>
           <button type="submit" className="btn btn-primary" disabled={save.isPending || !form.acceptedTypes.length}>
             Save slot
           </button>

@@ -684,3 +684,43 @@ fieldset.field {
 .dialog-wide {
   width: min(560px, 100%);
 }
+
+.thumb {
+  width: 120px;
+  height: 80px;
+  border: 1px solid var(--omp-color-border-default);
+  border-radius: var(--omp-radius-md);
+  object-fit: cover;
+  background: var(--omp-color-bg-subtle);
+}
+
+.rule-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rule {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: var(--omp-radius-md);
+  background: var(--omp-color-bg-subtle);
+}
+
+.rule-icon {
+  flex-shrink: 0;
+  color: var(--omp-color-action-accent);
+}
+
+.rule-text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 14px;
+}

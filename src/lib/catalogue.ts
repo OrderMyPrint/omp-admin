@@ -22,8 +22,20 @@ export type ProductRow = {
   isVisible: boolean;
   publishedVersionNo: number | null;
   draftVersionNo: number | null;
+  scheduled: { versionNo: number; effectiveFrom: string } | null;
   artworkSlots: string[];
 };
+
+export type Rule = {
+  id: string;
+  whenGroup: string;
+  whenOption: string;
+  effect: "EXCLUDES" | "REQUIRES";
+  thenGroup: string;
+  thenOptions: string[];
+  message: string;
+};
+export type TaxProfile = { id: string; name: string; gstRate: string; note: string | null };
 
 export type Option = {
   id: string;
@@ -39,6 +51,8 @@ export type OptionGroup = {
   key: string;
   label: string;
   shortLabel: string | null;
+  hint: string;
+  note: string | null;
   kind: "SELECT" | "SWATCH" | "MULTISELECT";
   required: boolean;
   defaultKeys: string[];
@@ -76,6 +90,7 @@ export type ProductDetail = {
   publishedVersionNo: number | null;
   optionGroups: OptionGroup[];
   artworkSlots: ArtworkSlot[];
+  rules: Rule[];
 };
 
 export type OptionPrice = { perUnit?: string; unitPrice?: string; perOrder?: string };
@@ -96,7 +111,7 @@ export type PricingDocument = {
   sizeSurcharge?: { sizes: string[]; perUnit: string; label: string };
 };
 
-export type VersionStatus = "DRAFT" | "PUBLISHED" | "ARCHIVED";
+export type VersionStatus = "DRAFT" | "SCHEDULED" | "PUBLISHED" | "ARCHIVED";
 export type VersionRow = {
   id: string;
   versionNo: number;
@@ -117,6 +132,7 @@ export type Version = {
   status: VersionStatus;
   note: string | null;
   document: PricingDocument;
+  effectiveFrom: string;
   publishedAt: string | null;
   product: ProductDetail;
 };
@@ -163,3 +179,22 @@ export const errText = (e: unknown) => {
 
 /** Reference rates from the seed are not confirmed business prices (decision D-08). */
 export const isReferenceSource = (source: string | null | undefined) => !!source && /D-08|reference/i.test(source);
+
+export const dateTimeText = (value: string | null | undefined) =>
+  value
+    ? new Date(value).toLocaleString("en-IN", {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      })
+    : "—";
+
+/** Lower-case words joined by dashes, from a label. */
+export const toKey = (label: string) =>
+  label
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "")
+    .slice(0, 60);
