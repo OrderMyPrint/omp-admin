@@ -45,8 +45,8 @@ export const NAV: NavGroup[] = [
     title: "Sales",
     items: [
       { label: "Orders", path: "/orders", icon: Package, permission: "orders.read", ready: true },
-      { label: "Quotations", path: "/quotations", icon: MessageSquare, permission: "quotes.read", ready: false },
-      { label: "Customers & companies", path: "/customers", icon: Users, permission: "customers.read", ready: false },
+      { label: "Quotations", path: "/quotations", icon: MessageSquare, permission: "quotes.read", ready: true },
+      { label: "Customers & companies", path: "/customers", icon: Users, permission: "customers.read", ready: true },
     ],
   },
   {

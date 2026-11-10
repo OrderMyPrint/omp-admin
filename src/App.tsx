@@ -6,8 +6,10 @@ import { useSession } from "./lib/session";
 import { AuditLog } from "./pages/AuditLog";
 import { AcceptInvite, SignIn } from "./pages/Auth";
 import { Catalogue } from "./pages/Catalogue";
+import { Customers } from "./pages/Customers";
 import { Orders } from "./pages/Orders";
 import { Pricing } from "./pages/Pricing";
+import { Quotations } from "./pages/Quotations";
 import { AccessDenied, ComingSoon, NotFound, Overview } from "./pages/Simple";
 import { StaffAndRoles } from "./pages/Staff";
 import { VisualEditor } from "./pages/VisualEditor";
@@ -18,6 +20,8 @@ const screens: Record<string, ReactNode> = {
   "/catalogue": <Catalogue />,
   "/pricing": <Pricing />,
   "/orders": <Orders />,
+  "/quotations": <Quotations />,
+  "/customers": <Customers />,
   "/staff": <StaffAndRoles />,
   "/website": <Website />,
   "/audit": <AuditLog />,

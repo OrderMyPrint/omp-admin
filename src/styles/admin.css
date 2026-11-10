@@ -779,3 +779,70 @@ fieldset.field {
   border-left: 2px solid var(--omp-color-border-default);
   font-size: 14px;
 }
+
+/* Quotation pipeline (AD-QUO-01) */
+.kanban {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(200px, 1fr));
+  gap: 12px;
+  align-items: start;
+  overflow-x: auto;
+}
+
+.kanban-col {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 160px;
+  padding: 12px 8px;
+  border-radius: var(--omp-radius-lg);
+  background: var(--omp-color-bg-subtle);
+}
+
+.kanban-col h2 {
+  margin: 0;
+  padding-inline: 4px;
+}
+
+.kanban-col ul,
+.kanban-declined {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.kanban-declined {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+}
+
+.kanban-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  padding: 12px;
+  border: 1px solid var(--omp-color-border-default);
+  border-radius: var(--omp-radius-md);
+  background: var(--omp-color-bg-surface);
+  color: var(--omp-color-text-primary);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.kanban-card:hover {
+  border-color: var(--omp-color-border-strong);
+}
+
+.kanban-card:focus-visible {
+  outline: 2px solid var(--omp-color-border-focus);
+  outline-offset: 2px;
+}
+
+.kanban-card[draggable="true"] {
+  cursor: grab;
+}
