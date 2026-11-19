@@ -846,3 +846,26 @@ fieldset.field {
 .kanban-card[draggable="true"] {
   cursor: grab;
 }
+
+/* Job card print view (AD-PRD-02): only the open job card prints. */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+
+  .dialog:has(.job-card),
+  .dialog:has(.job-card) * {
+    visibility: visible;
+  }
+
+  .dialog:has(.job-card) {
+    position: absolute;
+    inset: 0 auto auto 0;
+    width: 100%;
+    box-shadow: none;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+}

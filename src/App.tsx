@@ -9,7 +9,10 @@ import { Catalogue } from "./pages/Catalogue";
 import { Customers } from "./pages/Customers";
 import { Orders } from "./pages/Orders";
 import { Pricing } from "./pages/Pricing";
+import { Production } from "./pages/Production";
+import { QualityControl } from "./pages/QualityControl";
 import { Quotations } from "./pages/Quotations";
+import { Shipments } from "./pages/Shipments";
 import { AccessDenied, ComingSoon, NotFound, Overview } from "./pages/Simple";
 import { StaffAndRoles } from "./pages/Staff";
 import { VisualEditor } from "./pages/VisualEditor";
@@ -22,6 +25,9 @@ const screens: Record<string, ReactNode> = {
   "/orders": <Orders />,
   "/quotations": <Quotations />,
   "/customers": <Customers />,
+  "/production": <Production />,
+  "/qc": <QualityControl />,
+  "/shipments": <Shipments />,
   "/staff": <StaffAndRoles />,
   "/website": <Website />,
   "/audit": <AuditLog />,

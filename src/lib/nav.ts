@@ -54,9 +54,9 @@ export const NAV: NavGroup[] = [
     items: [
       { label: "Artwork review", path: "/artwork", icon: Image, permission: "artwork.read", ready: false },
       { label: "Order map", path: "/order-map", icon: MapPin, permission: "orders.read", ready: false },
-      { label: "Production", path: "/production", icon: Printer, permission: "production.read", ready: false },
-      { label: "Quality control", path: "/qc", icon: ClipboardCheck, permission: "production.read", ready: false },
-      { label: "Shipments", path: "/shipments", icon: Truck, permission: "shipments.read", ready: false },
+      { label: "Production", path: "/production", icon: Printer, permission: "production.read", ready: true },
+      { label: "Quality control", path: "/qc", icon: ClipboardCheck, permission: "production.read", ready: true },
+      { label: "Shipments", path: "/shipments", icon: Truck, permission: "shipments.read", ready: true },
     ],
   },
   {
