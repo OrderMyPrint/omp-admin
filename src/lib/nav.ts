@@ -62,7 +62,7 @@ export const NAV: NavGroup[] = [
   {
     title: "Finance",
     items: [
-      { label: "Payments & refunds", path: "/payments", icon: CreditCard, permission: "payments.read", ready: false },
+      { label: "Payments & refunds", path: "/payments", icon: CreditCard, permission: "payments.read", ready: true },
       { label: "Invoices", path: "/invoices", icon: Receipt, permission: "invoices.read", ready: false },
       { label: "Coupons", path: "/coupons", icon: Star, permission: "coupons.read", ready: false },
     ],

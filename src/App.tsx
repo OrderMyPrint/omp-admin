@@ -8,6 +8,7 @@ import { AcceptInvite, SignIn } from "./pages/Auth";
 import { Catalogue } from "./pages/Catalogue";
 import { Customers } from "./pages/Customers";
 import { Orders } from "./pages/Orders";
+import { Payments } from "./pages/Payments";
 import { Pricing } from "./pages/Pricing";
 import { Production } from "./pages/Production";
 import { QualityControl } from "./pages/QualityControl";
@@ -28,6 +29,7 @@ const screens: Record<string, ReactNode> = {
   "/production": <Production />,
   "/qc": <QualityControl />,
   "/shipments": <Shipments />,
+  "/payments": <Payments />,
   "/staff": <StaffAndRoles />,
   "/website": <Website />,
   "/audit": <AuditLog />,
